@@ -100,7 +100,7 @@ const sessionManager = new SessionStorageManager();
  * @param config - The configuration options for the SessionStorage instance.
  *   Can include `config` to provide AuthKit configuration values.
  * @returns The configured SessionStorage instance.
-*/
+ */
 export async function configureSessionStorage(config?: SessionStorageConfig) {
   return await sessionManager.configure(config);
 }

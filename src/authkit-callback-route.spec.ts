@@ -93,7 +93,6 @@ describe('authLoader', () => {
     expect(response.headers.get('Set-Cookie')).toBeDefined();
   });
 
-
   it('should redirect to the returnPathname', async () => {
     loader = authLoader({ returnPathname: '/dashboard' });
     const response = await loader({
