@@ -1,6 +1,5 @@
 import { WorkOS } from '@workos-inc/node';
 import { getConfig } from './config.js';
-import { lazy } from './utils.js';
 
 const VERSION = '0.13.0';
 
@@ -33,7 +32,8 @@ export function createWorkOSInstance() {
 }
 
 /**
- * Create a WorkOS instance with the provided API key and optional settings.
- * This function is lazy loaded to avoid loading the WorkOS SDK when it's not needed.
+ * Returns a new WorkOS instance using the current configuration.
  */
-export const getWorkOS = lazy(createWorkOSInstance);
+export function getWorkOS() {
+  return createWorkOSInstance();
+}

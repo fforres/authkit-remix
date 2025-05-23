@@ -36,6 +36,7 @@ describe('authLoader', () => {
   beforeEach(async () => {
     const mockAuthResponse = createAuthWithCodeResponse();
     authenticateWithCode.mockResolvedValue(mockAuthResponse);
+    authenticateWithCode.mockClear();
 
     loader = authLoader();
     const url = new URL('http://example.com/callback');
@@ -91,6 +92,7 @@ describe('authLoader', () => {
     expect(response.status).toBe(302);
     expect(response.headers.get('Set-Cookie')).toBeDefined();
   });
+
 
   it('should redirect to the returnPathname', async () => {
     loader = authLoader({ returnPathname: '/dashboard' });

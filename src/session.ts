@@ -12,7 +12,7 @@ import { getWorkOS } from './workos.js';
 
 import { sealData, unsealData } from 'iron-session';
 import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose';
-import { getConfig } from './config.js';
+import { getConfig, configure } from './config.js';
 import { configureSessionStorage, getSessionStorage } from './sessionStorage.js';
 import { isResponse, isRedirect, isJsonResponse, isDataWithResponseInit } from './utils.js';
 
@@ -292,7 +292,12 @@ export async function authkitLoader<Data = unknown>(
     onSessionRefreshError,
     storage,
     cookie,
+    config,
   } = typeof loaderOrOptions === 'object' ? loaderOrOptions : options;
+
+  if (config) {
+    configure(config);
+  }
 
   const cookieName = cookie?.name ?? getConfig('cookieName');
   const { getSession, destroySession } = await configureSessionStorage({ storage, cookieName });

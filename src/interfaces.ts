@@ -6,6 +6,10 @@ export type DataWithResponseInit<T> = ReturnType<typeof data<T>>;
 export type HandleAuthOptions = {
   returnPathname?: string;
   onSuccess?: (data: AuthLoaderSuccessData) => void | Promise<void>;
+  /**
+   * AuthKit configuration values to use for this request.
+   */
+  config?: Partial<AuthKitConfig>;
 } & (
   | {
       storage?: never;
@@ -86,6 +90,10 @@ export type AuthKitLoaderOptions = {
   debug?: boolean;
   onSessionRefreshError?: (options: RefreshErrorOptions) => void | Response | Promise<void | Response>;
   onSessionRefreshSuccess?: (options: RefreshSuccessOptions) => void | Promise<void>;
+  /**
+   * AuthKit configuration values to use for this request.
+   */
+  config?: Partial<AuthKitConfig>;
 } & (
   | {
       storage?: never;
