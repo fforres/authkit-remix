@@ -10,7 +10,7 @@ import { Session } from './interfaces.js';
 import { authkitLoader, encryptSession, refreshSession, terminateSession } from './session.js';
 import { assertIsResponse } from './test-utils/test-helpers.js';
 import { getWorkOS } from './workos.js';
-import { getConfig } from './config.js';
+import { createConfiguration } from './config.js';
 
 jest.mock('./sessionStorage.js', () => ({
   configureSessionStorage: jest.fn(),
@@ -139,11 +139,12 @@ describe('session', () => {
 
       sealData.mockResolvedValueOnce('encrypted-data');
 
-      const result = await encryptSession(mockSession);
+      const configuration = createConfiguration({ cookiePassword: 'a'.repeat(32) });
+      const result = await encryptSession(mockSession, configuration);
 
       expect(result).toBe('encrypted-data');
       expect(sealData).toHaveBeenCalledWith(mockSession, {
-        password: getConfig('cookiePassword'),
+        password: configuration.getValue('cookiePassword'),
         ttl: 0,
       });
       expect(sealData).toHaveBeenCalledTimes(1);

@@ -1,15 +1,20 @@
-import { LoaderFunctionArgs, data, redirect } from '@remix-run/node';
-import { getConfig } from './config.js';
+import { LoaderFunction, LoaderFunctionArgs, data, redirect } from '@remix-run/node';
+import { createConfiguration } from './config.js';
 import { HandleAuthOptions } from './interfaces.js';
 import { encryptSession } from './session.js';
 import { configureSessionStorage } from './sessionStorage.js';
 import { getWorkOS } from './workos.js';
 
-export function authLoader(options: HandleAuthOptions = {}) {
+export function authLoader(options: HandleAuthOptions = {}): LoaderFunction {
   return async function loader({ request }: LoaderFunctionArgs) {
-    const { storage, cookie, returnPathname: returnPathnameOption = '/', onSuccess } = options;
-    const cookieName = cookie?.name ?? getConfig('cookieName');
-    const { getSession, commitSession } = await configureSessionStorage({ storage, cookieName });
+    const { storage, cookie, returnPathname: returnPathnameOption = '/', onSuccess, config } = options;
+    const configuration = createConfiguration(config ?? {});
+    const cookieName = cookie?.name ?? configuration.getValue('cookieName');
+    const { getSession, commitSession } = await configureSessionStorage({
+      storage,
+      cookieName,
+      config,
+    });
 
     const url = new URL(request.url);
 
@@ -20,8 +25,8 @@ export function authLoader(options: HandleAuthOptions = {}) {
     if (code) {
       try {
         const { accessToken, refreshToken, user, impersonator, oauthTokens } =
-          await getWorkOS().userManagement.authenticateWithCode({
-            clientId: getConfig('clientId'),
+          await getWorkOS(configuration).userManagement.authenticateWithCode({
+            clientId: configuration.getValue('clientId'),
             code,
           });
 
@@ -47,13 +52,16 @@ export function authLoader(options: HandleAuthOptions = {}) {
         // The refreshToken should never be accesible publicly, hence why we encrypt it
         // in the cookie session. Alternatively you could persist the refresh token in a
         // backend database.
-        const encryptedSession = await encryptSession({
-          accessToken,
-          refreshToken,
-          user,
-          impersonator,
-          headers: {},
-        });
+        const encryptedSession = await encryptSession(
+          {
+            accessToken,
+            refreshToken,
+            user,
+            impersonator,
+            headers: {},
+          },
+          configuration,
+        );
 
         const session = await getSession(cookieName);
 

@@ -1,8 +1,14 @@
 import { LoaderFunctionArgs, data, redirect } from '@remix-run/node';
 import { getAuthorizationUrl } from './get-authorization-url.js';
-import { NoUserInfo, UserInfo } from './interfaces.js';
-import { getClaimsFromAccessToken, getSessionFromCookie, refreshSession, terminateSession } from './session.js';
-import { getConfig } from './config.js';
+import { DataWithResponseInit, NoUserInfo, UserInfo } from './interfaces.js';
+import {
+  getClaimsFromAccessToken,
+  getSessionFromCookie,
+  refreshSession,
+  terminateSession,
+} from './session.js';
+import { resolveConfiguration, type Configuration } from './config.js';
+import type { AuthKitConfig } from './interfaces.js';
 
 export async function getSignInUrl(returnPathname?: string) {
   return getAuthorizationUrl({ returnPathname, screenHint: 'sign-in' });
@@ -12,8 +18,13 @@ export async function getSignUpUrl(returnPathname?: string) {
   return getAuthorizationUrl({ returnPathname, screenHint: 'sign-up' });
 }
 
-export async function signOut(request: Request, options?: { returnTo?: string }) {
-  return await terminateSession(request, options);
+export async function signOut(
+  request: Request,
+  config: Partial<AuthKitConfig> | Configuration,
+  options: { returnTo?: string },
+) {
+  const configuration = resolveConfiguration(config);
+  return await terminateSession(request, options, configuration);
 }
 
 /**
@@ -25,10 +36,14 @@ export async function signOut(request: Request, options?: { returnTo?: string })
  * @param args - The loader's arguments.
  * @returns An object containing user information
  */
-export async function withAuth(args: LoaderFunctionArgs): Promise<UserInfo | NoUserInfo> {
+export async function withAuth(
+  args: LoaderFunctionArgs,
+  config: Partial<AuthKitConfig> | Configuration,
+): Promise<UserInfo | NoUserInfo> {
   const { request } = args;
+  const configuration = resolveConfiguration(config);
   const cookieHeader = request.headers.get('Cookie') as string;
-  const cookieName = getConfig('cookieName');
+  const cookieName = configuration.getValue('cookieName');
 
   // Simple check without environment detection
   if (!cookieHeader || !cookieHeader.includes(cookieName)) {
@@ -36,7 +51,7 @@ export async function withAuth(args: LoaderFunctionArgs): Promise<UserInfo | NoU
       `[AuthKit] No session cookie "${cookieName}" found. ` + `Make sure authkitLoader is used in a parent/root route.`,
     );
   }
-  const session = await getSessionFromCookie(cookieHeader);
+  const session = await getSessionFromCookie(cookieHeader, undefined, configuration);
 
   if (!session?.accessToken) {
     return {
@@ -81,10 +96,15 @@ export async function withAuth(args: LoaderFunctionArgs): Promise<UserInfo | NoU
 export async function switchToOrganization(
   request: Request,
   organizationId: string,
-  { returnTo }: { returnTo?: string } = {},
-) {
+  { returnTo, config }: { returnTo?: string; config?: Partial<AuthKitConfig> | Configuration } = {},
+): Promise<
+  | Response
+  | DataWithResponseInit<{ success: true; auth: Awaited<ReturnType<typeof refreshSession>> }>
+  | DataWithResponseInit<{ success: false; error: string }>
+> {
+  const configuration = resolveConfiguration(config);
   try {
-    const auth = await refreshSession(request, { organizationId });
+    const auth = await refreshSession(request, { organizationId }, configuration);
 
     // if returnTo is provided, redirect to there
     if (returnTo) {
@@ -112,7 +132,7 @@ export async function switchToOrganization(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const errorCause: any = error instanceof Error ? error.cause : null;
     if (errorCause?.error === 'sso_required' || errorCause?.error === 'mfa_enrollment') {
-      return redirect(await getAuthorizationUrl({ organizationId }));
+      return redirect(await getAuthorizationUrl({ organizationId, config: configuration }));
     }
 
     return data(

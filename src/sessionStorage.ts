@@ -1,7 +1,10 @@
 import { createCookieSessionStorage, type SessionIdStorageStrategy, type SessionStorage } from '@remix-run/node';
-import { getConfig } from './config.js';
+import { type Configuration, createConfiguration } from './config.js';
+import type { AuthKitConfig } from './interfaces.js';
 
-type SessionStorageConfig = { storage?: never; cookieName?: string } | { storage: SessionStorage; cookieName: string };
+export type SessionStorageConfig =
+  | { storage?: never; cookieName?: string; config?: Partial<AuthKitConfig> }
+  | { storage: SessionStorage; cookieName: string; config?: Partial<AuthKitConfig> };
 
 export const errors = {
   configureSessionStorage:
@@ -20,12 +23,18 @@ export class SessionStorageManager {
 
   private storage: SessionStorage | null = null;
   private configPromise: Promise<void> | null = null;
-  private cookieName: string = getConfig('cookieName') || 'wos-session';
+  private cookieName: string;
+  private configuration: Configuration = createConfiguration();
+
+  constructor() {
+    this.cookieName = this.configuration.getValue('cookieName') || 'wos-session';
+  }
 
   async configure(config: SessionStorageConfig = {}) {
     if (!this.configPromise) {
+      this.configuration = createConfiguration(config.config ?? {});
       this.configPromise = new Promise<void>((resolve) => {
-        this.storage = this.createSessionStorage(config);
+        this.storage = this.createSessionStorage(config, this.configuration);
         resolve();
       });
     }
@@ -49,7 +58,10 @@ export class SessionStorageManager {
     return { ...storage, cookieName };
   }
 
-  private createSessionStorage({ storage, cookieName }: SessionStorageConfig): SessionStorage {
+  private createSessionStorage(
+    { storage, cookieName }: SessionStorageConfig,
+    configuration: Configuration,
+  ): SessionStorage {
     if (cookieName) {
       this.cookieName = cookieName;
     }
@@ -59,7 +71,7 @@ export class SessionStorageManager {
     }
 
     const cookieOptions = {
-      ...this.getDefaultCookieOptions(),
+      ...this.getDefaultCookieOptions(configuration),
       ...(cookieName ? { name: cookieName } : {}),
     };
 
@@ -68,10 +80,10 @@ export class SessionStorageManager {
     });
   }
 
-  private getDefaultCookieOptions(): SessionIdStorageStrategy['cookie'] {
-    const redirectUrl = new URL(getConfig('redirectUri'));
+  private getDefaultCookieOptions(configuration: Configuration): SessionIdStorageStrategy['cookie'] {
+    const redirectUrl = new URL(configuration.getValue('redirectUri'));
     const isSecureProtocol = redirectUrl.protocol === 'https:';
-    const maxAge = getConfig('cookieMaxAge');
+    const maxAge = configuration.getValue('cookieMaxAge');
 
     return {
       name: this.cookieName,
@@ -80,7 +92,7 @@ export class SessionStorageManager {
       secure: isSecureProtocol,
       sameSite: 'lax',
       maxAge,
-      secrets: [getConfig('cookiePassword')],
+      secrets: [configuration.getValue('cookiePassword')],
     };
   }
 }
@@ -92,6 +104,7 @@ const sessionManager = new SessionStorageManager();
  * If no configuration has been set, this will return a new instance of
  * SessionStorage using the default cookie settings.
  * @param config - The configuration options for the SessionStorage instance.
+ *   Can include `config` to provide AuthKit configuration values.
  * @returns The configured SessionStorage instance.
  */
 export async function configureSessionStorage(config?: SessionStorageConfig) {
