@@ -12,7 +12,11 @@ export function authLoader(options: HandleAuthOptions = {}): LoaderFunction {
       configure(config);
     }
     const cookieName = cookie?.name ?? getConfig('cookieName');
-    const { getSession, commitSession } = await configureSessionStorage({ storage, cookieName });
+    const { getSession, commitSession } = await configureSessionStorage({
+      storage,
+      cookieName,
+      config,
+    });
 
     const url = new URL(request.url);
 

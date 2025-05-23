@@ -1,7 +1,10 @@
 import { createCookieSessionStorage, type SessionIdStorageStrategy, type SessionStorage } from '@remix-run/node';
-import { getConfig } from './config.js';
+import { getConfig, configure } from './config.js';
+import type { AuthKitConfig } from './interfaces.js';
 
-type SessionStorageConfig = { storage?: never; cookieName?: string } | { storage: SessionStorage; cookieName: string };
+export type SessionStorageConfig =
+  | { storage?: never; cookieName?: string; config?: Partial<AuthKitConfig> }
+  | { storage: SessionStorage; cookieName: string; config?: Partial<AuthKitConfig> };
 
 export const errors = {
   configureSessionStorage:
@@ -24,6 +27,9 @@ export class SessionStorageManager {
 
   async configure(config: SessionStorageConfig = {}) {
     if (!this.configPromise) {
+      if (config.config) {
+        configure(config.config);
+      }
       this.configPromise = new Promise<void>((resolve) => {
         this.storage = this.createSessionStorage(config);
         resolve();
@@ -92,6 +98,7 @@ const sessionManager = new SessionStorageManager();
  * If no configuration has been set, this will return a new instance of
  * SessionStorage using the default cookie settings.
  * @param config - The configuration options for the SessionStorage instance.
+ *   Can include `config` to provide AuthKit configuration values.
  * @returns The configured SessionStorage instance.
  */
 export async function configureSessionStorage(config?: SessionStorageConfig) {

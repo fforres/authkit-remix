@@ -82,7 +82,11 @@ export async function switchToOrganization(
   request: Request,
   organizationId: string,
   { returnTo }: { returnTo?: string } = {},
-): Promise<Response | DataWithResponseInit<{ success: true; auth: Awaited<ReturnType<typeof refreshSession>> }> | DataWithResponseInit<{ success: false; error: string }>> {
+): Promise<
+  | Response
+  | DataWithResponseInit<{ success: true; auth: Awaited<ReturnType<typeof refreshSession>> }>
+  | DataWithResponseInit<{ success: false; error: string }>
+> {
   try {
     const auth = await refreshSession(request, { organizationId });
 
