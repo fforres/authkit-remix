@@ -1,5 +1,5 @@
 import { createCookieSessionStorage, type SessionIdStorageStrategy, type SessionStorage } from '@remix-run/node';
-import { getConfig, configure } from './config.js';
+import { type Configuration, createConfiguration } from './config.js';
 import type { AuthKitConfig } from './interfaces.js';
 
 export type SessionStorageConfig =
@@ -23,15 +23,18 @@ export class SessionStorageManager {
 
   private storage: SessionStorage | null = null;
   private configPromise: Promise<void> | null = null;
-  private cookieName: string = getConfig('cookieName') || 'wos-session';
+  private cookieName: string;
+  private configuration: Configuration = createConfiguration();
+
+  constructor() {
+    this.cookieName = this.configuration.getValue('cookieName') || 'wos-session';
+  }
 
   async configure(config: SessionStorageConfig = {}) {
     if (!this.configPromise) {
-      if (config.config) {
-        configure(config.config);
-      }
+      this.configuration = createConfiguration(config.config ?? {});
       this.configPromise = new Promise<void>((resolve) => {
-        this.storage = this.createSessionStorage(config);
+        this.storage = this.createSessionStorage(config, this.configuration);
         resolve();
       });
     }
@@ -55,7 +58,10 @@ export class SessionStorageManager {
     return { ...storage, cookieName };
   }
 
-  private createSessionStorage({ storage, cookieName }: SessionStorageConfig): SessionStorage {
+  private createSessionStorage(
+    { storage, cookieName }: SessionStorageConfig,
+    configuration: Configuration,
+  ): SessionStorage {
     if (cookieName) {
       this.cookieName = cookieName;
     }
@@ -65,7 +71,7 @@ export class SessionStorageManager {
     }
 
     const cookieOptions = {
-      ...this.getDefaultCookieOptions(),
+      ...this.getDefaultCookieOptions(configuration),
       ...(cookieName ? { name: cookieName } : {}),
     };
 
@@ -74,10 +80,10 @@ export class SessionStorageManager {
     });
   }
 
-  private getDefaultCookieOptions(): SessionIdStorageStrategy['cookie'] {
-    const redirectUrl = new URL(getConfig('redirectUri'));
+  private getDefaultCookieOptions(configuration: Configuration): SessionIdStorageStrategy['cookie'] {
+    const redirectUrl = new URL(configuration.getValue('redirectUri'));
     const isSecureProtocol = redirectUrl.protocol === 'https:';
-    const maxAge = getConfig('cookieMaxAge');
+    const maxAge = configuration.getValue('cookieMaxAge');
 
     return {
       name: this.cookieName,
@@ -86,7 +92,7 @@ export class SessionStorageManager {
       secure: isSecureProtocol,
       sameSite: 'lax',
       maxAge,
-      secrets: [getConfig('cookiePassword')],
+      secrets: [configuration.getValue('cookiePassword')],
     };
   }
 }

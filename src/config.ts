@@ -1,5 +1,4 @@
 import type { AuthKitConfig } from './interfaces.js';
-import { lazy } from './utils.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ValueSource = Record<string, any> | ((key: string) => any);
@@ -109,55 +108,16 @@ export class Configuration {
   }
 }
 
-// lazy-instantiate the Configuration instance
-const getConfigurationInstance = lazy(() => new Configuration());
-
-/**
- * Configure AuthKit with a custom value source.
- * @param source The source of configuration values
- *
- * @example
- * configure(key => Deno.env.get(key));
- */
-export function configure(source: ValueSource): void;
-/**
- * Configure AuthKit with custom values.
- * @param config The configuration values
- *
- * @example
- * configure({
- *    clientId: 'your-client-id',
- *    redirectUri: 'https://your-app.com/auth/callback',
- *    apiKey: 'your-api-key',
- *    cookiePassword: 'your-cookie-password',
- *  });
- */
-export function configure(config: Partial<AuthKitConfig>): void;
-/**
- * Configure AuthKit with custom values and a custom value source.
- * @param config The configuration values
- * @param source The source of configuration values
- *
- * @example
- * configure({
- *   clientId: 'your-client-id',
- * }, env);
- */
-export function configure(config: Partial<AuthKitConfig>, source: ValueSource): void;
-export function configure(configOrSource: Partial<AuthKitConfig> | ValueSource, source?: ValueSource): void {
-  const config = getConfigurationInstance();
-  config.configure(configOrSource, source);
+export function createConfiguration(config: Partial<AuthKitConfig> = {}): Configuration {
+  const configuration = new Configuration();
+  configuration.configure(config);
+  return configuration;
 }
 
-/**
- * Get a configuration value by key.
- * This function will first check environment variables, then programmatically provided config,
- * and finally fall back to defaults for optional settings.
- * If a required setting is missing, an error will be thrown.
- * @param key The configuration key
- * @returns The configuration value
- */
-export function getConfig<K extends keyof AuthKitConfig>(key: K): AuthKitConfig[K] {
-  const config = getConfigurationInstance();
-  return config.getValue(key);
+export function resolveConfiguration(config?: Partial<AuthKitConfig> | Configuration): Configuration {
+  if (config instanceof Configuration) {
+    return config;
+  }
+
+  return createConfiguration(config ?? {});
 }
