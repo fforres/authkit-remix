@@ -1,13 +1,16 @@
-import { LoaderFunctionArgs, data, redirect } from '@remix-run/node';
-import { getConfig } from './config.js';
+import { LoaderFunction, LoaderFunctionArgs, data, redirect } from '@remix-run/node';
+import { getConfig, configure } from './config.js';
 import { HandleAuthOptions } from './interfaces.js';
 import { encryptSession } from './session.js';
 import { configureSessionStorage } from './sessionStorage.js';
 import { getWorkOS } from './workos.js';
 
-export function authLoader(options: HandleAuthOptions = {}) {
+export function authLoader(options: HandleAuthOptions = {}): LoaderFunction {
   return async function loader({ request }: LoaderFunctionArgs) {
-    const { storage, cookie, returnPathname: returnPathnameOption = '/', onSuccess } = options;
+    const { storage, cookie, returnPathname: returnPathnameOption = '/', onSuccess, config } = options;
+    if (config) {
+      configure(config);
+    }
     const cookieName = cookie?.name ?? getConfig('cookieName');
     const { getSession, commitSession } = await configureSessionStorage({ storage, cookieName });
 

@@ -36,6 +36,7 @@ describe('authLoader', () => {
   beforeEach(async () => {
     const mockAuthResponse = createAuthWithCodeResponse();
     authenticateWithCode.mockResolvedValue(mockAuthResponse);
+    authenticateWithCode.mockClear();
 
     loader = authLoader();
     const url = new URL('http://example.com/callback');
