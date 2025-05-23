@@ -21,43 +21,39 @@ describe('workos', () => {
     },
   } as const;
 
-  let getWorkOS: () => WorkOSType;
+  let getWorkOS: (config?: Partial<AuthKitConfig>) => WorkOSType;
   let WorkOS: typeof WorkOSType;
-  let configure: (config: Partial<AuthKitConfig>) => void;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetModules();
-    ({ configure } = require('./config.js'));
+    ({ getWorkOS } = await import('./workos.js'));
   });
 
   it('should initialize WorkOS with correct API key', async () => {
-    configure({ ...config });
     jest.mock('@workos-inc/node', () => ({ WorkOS: jest.fn() }));
     ({ getWorkOS } = await import('./workos.js'));
     ({ WorkOS } = await import('@workos-inc/node'));
-    const workos = getWorkOS();
+    const workos = getWorkOS(config);
 
     expect(WorkOS).toHaveBeenCalledWith(config.apiKey, expect.objectContaining(options));
     expect(workos).toBeDefined();
   });
 
   it('sets https when WORKOS_API_HTTPS is set', async () => {
-    configure({ ...config, apiHttps: false });
     jest.mock('@workos-inc/node', () => ({ WorkOS: jest.fn() }));
     ({ getWorkOS } = await import('./workos.js'));
     ({ WorkOS } = await import('@workos-inc/node'));
-    const workos = getWorkOS();
+    const workos = getWorkOS({ ...config, apiHttps: false });
 
     expect(WorkOS).toHaveBeenCalledWith(config.apiKey, expect.objectContaining({ ...options, https: false }));
     expect(workos).toBeDefined();
   });
 
   it('does not set the port when not provided', async () => {
-    configure({ ...config, apiPort: 3000 });
     jest.mock('@workos-inc/node', () => ({ WorkOS: jest.fn() }));
     ({ getWorkOS } = await import('./workos.js'));
     ({ WorkOS } = await import('@workos-inc/node'));
-    const workos = getWorkOS();
+    const workos = getWorkOS({ ...config, apiPort: 3000 });
 
     expect(WorkOS).toHaveBeenCalledWith(config.apiKey, expect.objectContaining({ ...options, port: 3000 }));
     expect(workos).toBeDefined();

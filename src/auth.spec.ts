@@ -2,7 +2,6 @@ import { User } from '@workos-inc/node';
 import { getSignInUrl, getSignUpUrl, signOut, switchToOrganization, withAuth } from './auth.js';
 import * as authorizationUrl from './get-authorization-url.js';
 import * as session from './session.js';
-import * as configModule from './config.js';
 import { data, redirect, LoaderFunctionArgs } from '@remix-run/node';
 import { assertIsResponse } from './test-utils/test-helpers.js';
 
@@ -10,7 +9,6 @@ const terminateSession = jest.mocked(session.terminateSession);
 const refreshSession = jest.mocked(session.refreshSession);
 const getSessionFromCookie = jest.mocked(session.getSessionFromCookie);
 const getClaimsFromAccessToken = jest.mocked(session.getClaimsFromAccessToken);
-const getConfig = jest.mocked(configModule.getConfig);
 
 jest.mock('./session', () => ({
   terminateSession: jest.fn().mockResolvedValue(new Response()),
@@ -19,9 +17,6 @@ jest.mock('./session', () => ({
   getClaimsFromAccessToken: jest.fn(),
 }));
 
-jest.mock('./config', () => ({
-  getConfig: jest.fn(),
-}));
 
 // Mock redirect and data from react-router
 jest.mock('@remix-run/node', () => {
@@ -305,7 +300,6 @@ describe('auth', () => {
 
     beforeEach(() => {
       jest.clearAllMocks();
-      getConfig.mockReturnValue('wos-session');
     });
 
     it('should return user info when a valid session exists', async () => {

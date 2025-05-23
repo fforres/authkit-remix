@@ -1,19 +1,21 @@
 import { WorkOS } from '@workos-inc/node';
-import { getConfig } from './config.js';
+import { type AuthKitConfig } from './interfaces.js';
+import { type Configuration, resolveConfiguration } from './config.js';
 
 const VERSION = '0.13.0';
 
 /**
  * Create a WorkOS instance with the provided API key and optional settings.
  */
-export function createWorkOSInstance() {
+export function createWorkOSInstance(config?: Partial<AuthKitConfig> | Configuration) {
+  const configuration = resolveConfiguration(config);
   // Get required API key from config
-  const apiKey = getConfig('apiKey');
+  const apiKey = configuration.getValue('apiKey');
 
   // Get optional settings
-  const apiHostname = getConfig('apiHostname');
-  const apiHttps = getConfig('apiHttps');
-  const apiPort = getConfig('apiPort');
+  const apiHostname = configuration.getValue('apiHostname');
+  const apiHttps = configuration.getValue('apiHttps');
+  const apiPort = configuration.getValue('apiPort');
 
   const options = {
     apiHostname,
@@ -34,6 +36,6 @@ export function createWorkOSInstance() {
 /**
  * Returns a new WorkOS instance using the current configuration.
  */
-export function getWorkOS() {
-  return createWorkOSInstance();
+export function getWorkOS(config?: Partial<AuthKitConfig> | Configuration) {
+  return createWorkOSInstance(config);
 }
