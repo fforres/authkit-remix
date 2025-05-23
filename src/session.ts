@@ -300,7 +300,11 @@ export async function authkitLoader<Data = unknown>(
   }
 
   const cookieName = cookie?.name ?? getConfig('cookieName');
-  const { getSession, destroySession } = await configureSessionStorage({ storage, cookieName });
+  const { getSession, destroySession } = await configureSessionStorage({
+    storage,
+    cookieName,
+    config,
+  });
 
   const { request } = loaderArgs;
 
