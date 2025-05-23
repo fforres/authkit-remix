@@ -12,7 +12,7 @@ import { getWorkOS } from './workos.js';
 
 import { sealData, unsealData } from 'iron-session';
 import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose';
-import { getConfig, configure } from './config.js';
+import { createConfiguration, type Configuration } from './config.js';
 import { configureSessionStorage, getSessionStorage } from './sessionStorage.js';
 import { isResponse, isRedirect, isJsonResponse, isDataWithResponseInit } from './utils.js';
 
@@ -36,17 +36,21 @@ export class SessionRefreshError extends Error {
  * @param options - Optional configuration options
  * @returns A promise that resolves to the new session object
  */
-export async function refreshSession(request: Request, { organizationId }: { organizationId?: string } = {}) {
+export async function refreshSession(
+  request: Request,
+  { organizationId }: { organizationId?: string } = {},
+  configuration: Configuration = createConfiguration(),
+) {
   const { getSession, commitSession } = await getSessionStorage();
-  const session = await getSessionFromCookie(request.headers.get('Cookie') as string);
+  const session = await getSessionFromCookie(request.headers.get('Cookie') as string, undefined, configuration);
 
   if (!session) {
-    throw redirect(await getAuthorizationUrl());
+    throw redirect(await getAuthorizationUrl({ config: configuration }));
   }
 
   try {
-    const { accessToken, refreshToken } = await getWorkOS().userManagement.authenticateWithRefreshToken({
-      clientId: getConfig('clientId'),
+    const { accessToken, refreshToken } = await getWorkOS(configuration).userManagement.authenticateWithRefreshToken({
+      clientId: configuration.getValue('clientId'),
       refreshToken: session.refreshToken,
       organizationId,
     });
@@ -60,7 +64,7 @@ export async function refreshSession(request: Request, { organizationId }: { org
     };
 
     const cookieSession = await getSession(request.headers.get('Cookie'));
-    cookieSession.set('jwt', await encryptSession(newSession));
+    cookieSession.set('jwt', await encryptSession(newSession, configuration));
     const cookie = await commitSession(cookieSession);
 
     newSession.headers = {
@@ -94,8 +98,8 @@ export async function refreshSession(request: Request, { organizationId }: { org
   }
 }
 
-async function updateSession(request: Request, debug: boolean) {
-  const session = await getSessionFromCookie(request.headers.get('Cookie') as string);
+async function updateSession(request: Request, debug: boolean, configuration: Configuration) {
+  const session = await getSessionFromCookie(request.headers.get('Cookie') as string, undefined, configuration);
   const { commitSession, getSession } = await getSessionStorage();
 
   // If no session, just continue
@@ -103,7 +107,7 @@ async function updateSession(request: Request, debug: boolean) {
     return null;
   }
 
-  const hasValidSession = await verifyAccessToken(session.accessToken);
+  const hasValidSession = await verifyAccessToken(session.accessToken, configuration);
 
   if (hasValidSession) {
     // istanbul ignore next
@@ -116,8 +120,8 @@ async function updateSession(request: Request, debug: boolean) {
     if (debug) console.log(`Session invalid. Refreshing access token that ends in ${session.accessToken.slice(-10)}`);
 
     // If the session is invalid (i.e. the access token has expired) attempt to re-authenticate with the refresh token
-    const { accessToken, refreshToken } = await getWorkOS().userManagement.authenticateWithRefreshToken({
-      clientId: getConfig('clientId'),
+    const { accessToken, refreshToken } = await getWorkOS(configuration).userManagement.authenticateWithRefreshToken({
+      clientId: configuration.getValue('clientId'),
       refreshToken: session.refreshToken,
     });
 
@@ -134,7 +138,7 @@ async function updateSession(request: Request, debug: boolean) {
 
     // Encrypt session with new access and refresh tokens
     const updatedSession = await getSession(request.headers.get('Cookie'));
-    updatedSession.set('jwt', await encryptSession(newSession));
+    updatedSession.set('jwt', await encryptSession(newSession, configuration));
 
     newSession.headers = {
       'Set-Cookie': await commitSession(updatedSession),
@@ -149,9 +153,12 @@ async function updateSession(request: Request, debug: boolean) {
   }
 }
 
-export async function encryptSession(session: Session) {
+export async function encryptSession(
+  session: Session,
+  configuration: Configuration = createConfiguration(),
+) {
   return sealData(session, {
-    password: getConfig('cookiePassword'),
+    password: configuration.getValue('cookiePassword'),
     ttl: 0,
   });
 }
@@ -295,11 +302,9 @@ export async function authkitLoader<Data = unknown>(
     config,
   } = typeof loaderOrOptions === 'object' ? loaderOrOptions : options;
 
-  if (config) {
-    configure(config);
-  }
+  const configuration = createConfiguration(config ?? {});
 
-  const cookieName = cookie?.name ?? getConfig('cookieName');
+  const cookieName = cookie?.name ?? configuration.getValue('cookieName');
   const { getSession, destroySession } = await configureSessionStorage({
     storage,
     cookieName,
@@ -310,7 +315,7 @@ export async function authkitLoader<Data = unknown>(
 
   try {
     // Try to get session, this might throw SessionRefreshError
-    const session = await updateSession(request, debug);
+    const session = await updateSession(request, debug, configuration);
 
     if (!session) {
       // No session found case (not authenticated)
@@ -318,9 +323,11 @@ export async function authkitLoader<Data = unknown>(
         const returnPathname = getReturnPathname(request.url);
         const cookieSession = await getSession(request.headers.get('Cookie'));
 
-        throw redirect(await getAuthorizationUrl({ returnPathname }), {
-          headers: {
-            'Set-Cookie': await destroySession(cookieSession),
+        throw redirect(
+          await getAuthorizationUrl({ returnPathname, config: configuration }),
+          {
+            headers: {
+              'Set-Cookie': await destroySession(cookieSession),
           },
         });
       }
@@ -502,12 +509,17 @@ async function handleAuthLoader(
   return data(Object.assign({}, loaderResult, auth), session ? { headers: { ...session.headers } } : undefined);
 }
 
-export async function terminateSession(request: Request, { returnTo }: { returnTo?: string } = {}) {
+export async function terminateSession(
+  request: Request,
+  { returnTo }: { returnTo?: string } = {},
+  configuration: Configuration = createConfiguration(),
+) {
   const { getSession, destroySession } = await getSessionStorage();
   const encryptedSession = await getSession(request.headers.get('Cookie'));
   const { accessToken } = (await getSessionFromCookie(
     request.headers.get('Cookie') as string,
     encryptedSession,
+    configuration,
   )) as Session;
 
   const { sessionId } = getClaimsFromAccessToken(accessToken);
@@ -517,7 +529,7 @@ export async function terminateSession(request: Request, { returnTo }: { returnT
   };
 
   if (sessionId) {
-    return redirect(getWorkOS().userManagement.getLogoutUrl({ sessionId, returnTo }), {
+    return redirect(getWorkOS(configuration).userManagement.getLogoutUrl({ sessionId, returnTo }), {
       headers,
     });
   }
@@ -549,7 +561,11 @@ export function getClaimsFromAccessToken(accessToken: string) {
   };
 }
 
-export async function getSessionFromCookie(cookie: string, session?: SessionData) {
+export async function getSessionFromCookie(
+  cookie: string,
+  session?: SessionData,
+  configuration: Configuration = createConfiguration(),
+) {
   const { getSession } = await getSessionStorage();
   if (!session) {
     session = await getSession(cookie);
@@ -557,15 +573,17 @@ export async function getSessionFromCookie(cookie: string, session?: SessionData
 
   if (session.has('jwt')) {
     return unsealData<Session>(session.get('jwt'), {
-      password: getConfig('cookiePassword'),
+      password: configuration.getValue('cookiePassword'),
     });
   } else {
     return null;
   }
 }
 
-async function verifyAccessToken(accessToken: string) {
-  const JWKS = createRemoteJWKSet(new URL(getWorkOS().userManagement.getJwksUrl(getConfig('clientId'))));
+async function verifyAccessToken(accessToken: string, configuration: Configuration) {
+  const JWKS = createRemoteJWKSet(
+    new URL(getWorkOS(configuration).userManagement.getJwksUrl(configuration.getValue('clientId'))),
+  );
   try {
     await jwtVerify(accessToken, JWKS);
     return true;

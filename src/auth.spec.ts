@@ -2,7 +2,7 @@ import { User } from '@workos-inc/node';
 import { getSignInUrl, getSignUpUrl, signOut, switchToOrganization, withAuth } from './auth.js';
 import * as authorizationUrl from './get-authorization-url.js';
 import * as session from './session.js';
-import * as configModule from './config.js';
+import { Configuration } from './config.js';
 import { data, redirect, LoaderFunctionArgs } from '@remix-run/node';
 import { assertIsResponse } from './test-utils/test-helpers.js';
 
@@ -10,7 +10,6 @@ const terminateSession = jest.mocked(session.terminateSession);
 const refreshSession = jest.mocked(session.refreshSession);
 const getSessionFromCookie = jest.mocked(session.getSessionFromCookie);
 const getClaimsFromAccessToken = jest.mocked(session.getClaimsFromAccessToken);
-const getConfig = jest.mocked(configModule.getConfig);
 
 jest.mock('./session', () => ({
   terminateSession: jest.fn().mockResolvedValue(new Response()),
@@ -19,9 +18,6 @@ jest.mock('./session', () => ({
   getClaimsFromAccessToken: jest.fn(),
 }));
 
-jest.mock('./config', () => ({
-  getConfig: jest.fn(),
-}));
 
 // Mock redirect and data from react-router
 jest.mock('@remix-run/node', () => {
@@ -124,7 +120,11 @@ describe('auth', () => {
     it('should call refreshSession with the correct params', async () => {
       await switchToOrganization(request, organizationId);
 
-      expect(refreshSession).toHaveBeenCalledWith(request, { organizationId });
+      expect(refreshSession).toHaveBeenCalledWith(
+        request,
+        { organizationId },
+        expect.any(Configuration),
+      );
     });
 
     it('should return data with success and auth when no returnTo is provided', async () => {
@@ -305,7 +305,6 @@ describe('auth', () => {
 
     beforeEach(() => {
       jest.clearAllMocks();
-      getConfig.mockReturnValue('wos-session');
     });
 
     it('should return user info when a valid session exists', async () => {
@@ -350,7 +349,11 @@ describe('auth', () => {
       const result = await withAuth(createMockRequest('wos-session=valid-session-data'));
 
       // Verify called with correct params
-      expect(getSessionFromCookie).toHaveBeenCalledWith('wos-session=valid-session-data');
+      expect(getSessionFromCookie).toHaveBeenCalledWith(
+        'wos-session=valid-session-data',
+        undefined,
+        expect.any(Configuration),
+      );
       expect(getClaimsFromAccessToken).toHaveBeenCalledWith('valid-access-token');
 
       // Check result contains expected user info
