@@ -34,26 +34,6 @@ export class Configuration {
   }
 
   getValue<K extends keyof AuthKitConfig>(key: K): AuthKitConfig[K] {
-    // First check environment variables
-    const envValue = this.config[key];
-
-
-    // If environment variable exists, use it
-    if (envValue != null) {
-      // Convert string values to appropriate types
-      if (key === 'apiHttps' && typeof envValue === 'string') {
-        return (envValue === 'true') as AuthKitConfig[K];
-      }
-
-      if ((key === 'apiPort' || key === 'cookieMaxAge') && typeof envValue === 'string') {
-        const num = parseInt(envValue, 10);
-        return (isNaN(num) ? undefined : num) as AuthKitConfig[K];
-      }
-
-      return envValue as AuthKitConfig[K];
-    }
-
-    // Then check programmatically provided config
     if (key in this.config && this.config[key] != undefined) {
       return this.config[key] as AuthKitConfig[K];
     }
