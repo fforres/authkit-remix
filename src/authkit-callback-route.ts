@@ -1,4 +1,4 @@
-import { LoaderFunction, LoaderFunctionArgs, data, redirect } from '@remix-run/node';
+import { LoaderFunction, LoaderFunctionArgs, data, redirect } from '@remix-run/cloudflare';
 import { createConfiguration } from './config.js';
 import { HandleAuthOptions } from './interfaces.js';
 import { encryptSession } from './session.js';

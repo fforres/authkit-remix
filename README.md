@@ -133,7 +133,7 @@ export const loader = authLoader({
 Use `authkitLoader` to configure AuthKit for your Remix application routes.
 
 ```tsx
-import type { LoaderFunctionArgs } from '@remix-run/node';
+import type { LoaderFunctionArgs } from '@remix-run/cloudflare';
 import { useLoaderData } from '@remix-run/react';
 import { authkitLoader } from '@workos-inc/authkit-remix';
 
@@ -156,7 +156,7 @@ export function App() {
 For pages where you want to display a signed-in and signed-out view, use `authkitLoader` to retrieve the user profile from WorkOS. You can pass in additional data by providing a loader function directly to `authkitLoader`.
 
 ```tsx
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/cloudflare';
 import { Form, Link, useLoaderData } from '@remix-run/react';
 import { getSignInUrl, getSignUpUrl, signOut, authkitLoader } from '@workos-inc/authkit-remix';
 
@@ -222,7 +222,7 @@ export async function action({ request }: ActionFunctionArgs) {
 Sometimes it is useful to obtain the access token directly, for instance to make API requests to another service.
 
 ```tsx
-import type { LoaderFunctionArgs } from '@remix-run/node';
+import type { LoaderFunctionArgs } from '@remix-run/cloudflare';
 import { authkitLoader } from '@workos-inc/authkit-remix';
 
 export const loader = (args: LoaderFunctionArgs) =>
@@ -291,7 +291,7 @@ By default, AuthKit for Remix uses cookie-based session storage with these setti
 You can provide your own session storage implementation to both `authkitLoader` and `authLoader`:
 
 ```typescript
-import { createMemorySessionStorage } from '@remix-run/node';
+import { createMemorySessionStorage } from '@remix-run/cloudflare';
 import { authkitLoader, authLoader } from '@workos-inc/authkit-remix';
 
 // Create memory-based session storage

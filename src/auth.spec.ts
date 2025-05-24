@@ -2,7 +2,7 @@ import { User } from '@workos-inc/node';
 import { getSignInUrl, getSignUpUrl, signOut, switchToOrganization, withAuth } from './auth.js';
 import * as authorizationUrl from './get-authorization-url.js';
 import * as session from './session.js';
-import { data, redirect, LoaderFunctionArgs } from '@remix-run/node';
+import { data, redirect, LoaderFunctionArgs } from '@remix-run/cloudflare';
 import { assertIsResponse } from './test-utils/test-helpers.js';
 
 const terminateSession = jest.mocked(session.terminateSession);
@@ -18,8 +18,8 @@ jest.mock('./session', () => ({
 }));
 
 // Mock redirect and data from react-router
-jest.mock('@remix-run/node', () => {
-  const originalModule = jest.requireActual('@remix-run/node');
+jest.mock('@remix-run/cloudflare', () => {
+  const originalModule = jest.requireActual('@remix-run/cloudflare');
   return {
     ...originalModule,
     redirect: jest.fn().mockImplementation((to, init) => {

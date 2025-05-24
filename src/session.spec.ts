@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs, Session as ReactRouterSession, redirect } from '@remix-run/node';
+import { LoaderFunctionArgs, Session as ReactRouterSession, redirect } from '@remix-run/cloudflare';
 import { AuthenticationResponse } from '@workos-inc/node';
 import * as ironSession from 'iron-session';
 import * as jose from 'jose';

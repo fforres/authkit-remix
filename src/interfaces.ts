@@ -1,4 +1,4 @@
-import type { SessionStorage, SessionIdStorageStrategy, data, SessionData } from '@remix-run/node';
+import type { SessionStorage, SessionIdStorageStrategy, data, SessionData } from '@remix-run/cloudflare';
 import type { OauthTokens, User } from '@workos-inc/node';
 
 export type DataWithResponseInit<T> = ReturnType<typeof data<T>>;

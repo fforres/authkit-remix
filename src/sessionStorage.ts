@@ -1,4 +1,4 @@
-import { createCookieSessionStorage, type SessionIdStorageStrategy, type SessionStorage } from '@remix-run/node';
+import { createCookieSessionStorage, type SessionIdStorageStrategy, type SessionStorage } from '@remix-run/cloudflare';
 import { type Configuration, createConfiguration } from './config.js';
 import type { AuthKitConfig } from './interfaces.js';
 

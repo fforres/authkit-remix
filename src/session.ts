@@ -1,4 +1,4 @@
-import { data, redirect, type LoaderFunctionArgs, type SessionData } from '@remix-run/node';
+import { data, redirect, type LoaderFunctionArgs, type SessionData } from '@remix-run/cloudflare';
 import { getAuthorizationUrl } from './get-authorization-url.js';
 import type {
   AccessToken,
