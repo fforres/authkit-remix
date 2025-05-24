@@ -7,7 +7,7 @@ import {
   refreshSession,
   terminateSession,
 } from './session.js';
-import { createConfiguration, resolveConfiguration, type Configuration } from './config.js';
+import { resolveConfiguration, type Configuration } from './config.js';
 import type { AuthKitConfig } from './interfaces.js';
 
 export async function getSignInUrl(returnPathname?: string) {
@@ -18,8 +18,13 @@ export async function getSignUpUrl(returnPathname?: string) {
   return getAuthorizationUrl({ returnPathname, screenHint: 'sign-up' });
 }
 
-export async function signOut(request: Request, options?: { returnTo?: string }) {
-  return await terminateSession(request, options);
+export async function signOut(
+  request: Request,
+  config: Partial<AuthKitConfig> | Configuration,
+  options: { returnTo?: string },
+) {
+  const configuration = resolveConfiguration(config);
+  return await terminateSession(request, options, configuration);
 }
 
 /**
@@ -33,7 +38,7 @@ export async function signOut(request: Request, options?: { returnTo?: string })
  */
 export async function withAuth(
   args: LoaderFunctionArgs,
-  config?: Partial<AuthKitConfig> | Configuration,
+  config: Partial<AuthKitConfig> | Configuration,
 ): Promise<UserInfo | NoUserInfo> {
   const { request } = args;
   const configuration = resolveConfiguration(config);

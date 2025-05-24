@@ -512,7 +512,7 @@ async function handleAuthLoader(
 export async function terminateSession(
   request: Request,
   { returnTo }: { returnTo?: string } = {},
-  configuration: Configuration = createConfiguration(),
+  configuration: Configuration,
 ) {
   const { getSession, destroySession } = await getSessionStorage();
   const encryptedSession = await getSession(request.headers.get('Cookie'));
