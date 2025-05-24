@@ -17,7 +17,6 @@ export class Configuration {
     apiHostname: 'api.workos.com',
   };
 
-
   private readonly requiredKeys: (keyof AuthKitConfig)[] = ['clientId', 'apiKey', 'redirectUri', 'cookiePassword'];
 
   private updateConfig(config: Partial<AuthKitConfig>): void {

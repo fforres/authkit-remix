@@ -153,10 +153,7 @@ async function updateSession(request: Request, debug: boolean, configuration: Co
   }
 }
 
-export async function encryptSession(
-  session: Session,
-  configuration: Configuration = createConfiguration(),
-) {
+export async function encryptSession(session: Session, configuration: Configuration = createConfiguration()) {
   return sealData(session, {
     password: configuration.getValue('cookiePassword'),
     ttl: 0,
@@ -323,11 +320,9 @@ export async function authkitLoader<Data = unknown>(
         const returnPathname = getReturnPathname(request.url);
         const cookieSession = await getSession(request.headers.get('Cookie'));
 
-        throw redirect(
-          await getAuthorizationUrl({ returnPathname, config: configuration }),
-          {
-            headers: {
-              'Set-Cookie': await destroySession(cookieSession),
+        throw redirect(await getAuthorizationUrl({ returnPathname, config: configuration }), {
+          headers: {
+            'Set-Cookie': await destroySession(cookieSession),
           },
         });
       }

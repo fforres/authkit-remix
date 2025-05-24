@@ -17,7 +17,6 @@ jest.mock('./session', () => ({
   getClaimsFromAccessToken: jest.fn(),
 }));
 
-
 // Mock redirect and data from react-router
 jest.mock('@remix-run/node', () => {
   const originalModule = jest.requireActual('@remix-run/node');

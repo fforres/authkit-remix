@@ -24,11 +24,12 @@ export function authLoader(options: HandleAuthOptions = {}): LoaderFunction {
 
     if (code) {
       try {
-        const { accessToken, refreshToken, user, impersonator, oauthTokens } =
-          await getWorkOS(configuration).userManagement.authenticateWithCode({
-            clientId: configuration.getValue('clientId'),
-            code,
-          });
+        const { accessToken, refreshToken, user, impersonator, oauthTokens } = await getWorkOS(
+          configuration,
+        ).userManagement.authenticateWithCode({
+          clientId: configuration.getValue('clientId'),
+          code,
+        });
 
         // Clean up params
         url.searchParams.delete('code');

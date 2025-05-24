@@ -4,13 +4,4 @@ import { createConfiguration } from './config.js';
 import { authkitLoader } from './session.js';
 import { getWorkOS } from './workos.js';
 
-export {
-  authLoader,
-  authkitLoader,
-  getSignInUrl,
-  getSignUpUrl,
-  signOut,
-  createConfiguration,
-  getWorkOS,
-  withAuth,
-};
+export { authLoader, authkitLoader, getSignInUrl, getSignUpUrl, signOut, createConfiguration, getWorkOS, withAuth };

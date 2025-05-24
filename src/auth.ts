@@ -1,12 +1,7 @@
 import { LoaderFunctionArgs, data, redirect } from '@remix-run/node';
 import { getAuthorizationUrl } from './get-authorization-url.js';
 import { DataWithResponseInit, NoUserInfo, UserInfo } from './interfaces.js';
-import {
-  getClaimsFromAccessToken,
-  getSessionFromCookie,
-  refreshSession,
-  terminateSession,
-} from './session.js';
+import { getClaimsFromAccessToken, getSessionFromCookie, refreshSession, terminateSession } from './session.js';
 import { resolveConfiguration, type Configuration } from './config.js';
 import type { AuthKitConfig } from './interfaces.js';
 
