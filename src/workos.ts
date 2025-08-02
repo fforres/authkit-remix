@@ -2,7 +2,7 @@ import { WorkOS } from '@workos-inc/node';
 import { type AuthKitConfig } from './interfaces.js';
 import { type Configuration, resolveConfiguration } from './config.js';
 
-const VERSION = '0.13.0';
+const VERSION = '0.15.0';
 
 /**
  * Create a WorkOS instance with the provided API key and optional settings.

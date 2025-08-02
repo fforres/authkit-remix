@@ -119,10 +119,13 @@ async function updateSession(request: Request, debug: boolean, configuration: Co
     // istanbul ignore next
     if (debug) console.log(`Session invalid. Refreshing access token that ends in ${session.accessToken.slice(-10)}`);
 
+    const { organizationId } = getClaimsFromAccessToken(session.accessToken);
+
     // If the session is invalid (i.e. the access token has expired) attempt to re-authenticate with the refresh token
     const { accessToken, refreshToken } = await getWorkOS(configuration).userManagement.authenticateWithRefreshToken({
       clientId: configuration.getValue('clientId'),
       refreshToken: session.refreshToken,
+      organizationId,
     });
 
     // istanbul ignore next
@@ -164,10 +167,10 @@ type LoaderValue<Data> = Response | TypedResponse<Data> | NonNullable<Data> | nu
 type LoaderReturnValue<Data> = Promise<LoaderValue<Data>> | LoaderValue<Data>;
 
 type AuthLoader<Data> = (
-  args: LoaderFunctionArgs & { auth: AuthorizedData | UnauthorizedData },
+  args: LoaderFunctionArgs & { auth: AuthorizedData | UnauthorizedData; getAccessToken: () => string | null },
 ) => LoaderReturnValue<Data>;
 
-type AuthorizedAuthLoader<Data> = (args: LoaderFunctionArgs & { auth: AuthorizedData }) => LoaderReturnValue<Data>;
+type AuthorizedAuthLoader<Data> = (args: LoaderFunctionArgs & { auth: AuthorizedData; getAccessToken: () => string }) => LoaderReturnValue<Data>;
 
 /**
  * This loader handles authentication state, session management, and access token refreshing
@@ -329,14 +332,12 @@ export async function authkitLoader<Data = unknown>(
 
       const auth: UnauthorizedData = {
         user: null,
-        accessToken: null,
         impersonator: null,
         organizationId: null,
         permissions: null,
         entitlements: null,
         role: null,
         sessionId: null,
-        sealedSession: null,
       };
 
       return await handleAuthLoader(loader, loaderArgs, auth);
@@ -351,6 +352,7 @@ export async function authkitLoader<Data = unknown>(
       entitlements = [],
     } = getClaimsFromAccessToken(session.accessToken);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const cookieSession = await getSession(request.headers.get('Cookie'));
     const { impersonator = null } = session;
 
@@ -367,13 +369,11 @@ export async function authkitLoader<Data = unknown>(
     const auth: AuthorizedData = {
       user: session.user,
       sessionId,
-      accessToken: session.accessToken,
       organizationId,
       role,
       permissions,
       entitlements,
       impersonator,
-      sealedSession: cookieSession.get('jwt'),
     };
 
     return await handleAuthLoader(loader, loaderArgs, auth, session);
@@ -422,8 +422,24 @@ async function handleAuthLoader(
     return data(auth, session ? { headers: { ...session.headers } } : undefined);
   }
 
-  // Call the user's loader function
-  const loaderResult = await loader({ ...args, auth: auth as AuthorizedData });
+  // If there's a custom loader, get the resulting data and return it with our
+  // auth data plus session cookie header
+  let loaderResult;
+
+  if (auth.user) {
+    // Authorized case
+    const getAccessToken = () => {
+      if (!session?.accessToken) {
+        throw new Error('No access token available');
+      }
+      return session.accessToken;
+    };
+    loaderResult = await (loader as AuthorizedAuthLoader<unknown>)({ ...args, auth: auth as AuthorizedData, getAccessToken });
+  } else {
+    // Unauthorized case
+    const getAccessToken = () => null;
+    loaderResult = await (loader as AuthLoader<unknown>)({ ...args, auth, getAccessToken });
+  }
 
   // Special handling for DataWithResponseInit (from data())
   if (isDataWithResponseInit(loaderResult)) {

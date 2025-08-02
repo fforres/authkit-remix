@@ -1,7 +1,20 @@
-import { getSignInUrl, getSignUpUrl, signOut, withAuth } from './auth.js';
+import { getSignInUrl, getSignUpUrl, signOut, switchToOrganization, withAuth } from './auth.js';
 import { authLoader } from './authkit-callback-route.js';
-import { createConfiguration } from './config.js';
+import { createConfiguration, resolveConfiguration } from './config.js';
 import { authkitLoader } from './session.js';
 import { getWorkOS } from './workos.js';
 
-export { authLoader, authkitLoader, getSignInUrl, getSignUpUrl, signOut, createConfiguration, getWorkOS, withAuth };
+export {
+  authLoader,
+  //
+  authkitLoader,
+  createConfiguration,
+  resolveConfiguration,
+  //
+  getSignInUrl,
+  getSignUpUrl,
+  getWorkOS,
+  signOut,
+  switchToOrganization,
+  withAuth,
+};
